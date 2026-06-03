@@ -24,6 +24,26 @@ export function submitClaim(claim) {
   });
 }
 
+export async function extractDocuments({ documentText, files }) {
+  const formData = new FormData();
+  formData.append("documentText", documentText || "");
+  for (const file of files || []) {
+    formData.append("documents", file);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/extraction`, {
+    method: "POST",
+    body: formData
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Extraction failed" }));
+    throw new Error(error.message || "Extraction failed");
+  }
+
+  return response.json();
+}
+
 export function listClaims() {
   return request("/claims");
 }

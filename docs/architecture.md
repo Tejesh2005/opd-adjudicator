@@ -25,7 +25,7 @@ Owns claim intake, test-case execution, and MongoDB persistence.
 
 ### Extraction Service
 
-Currently normalizes structured JSON input. In production, this is where OCR and LLM document extraction should be added.
+Accepts pasted document text and uploaded files. When `GEMINI_API_KEY` is configured, it uses Gemini to extract structured claim JSON. If Gemini is unavailable, it can use OpenAI through `OPENAI_API_KEY`. If all LLM calls fail, it falls back to a deterministic local parser so the demo remains reliable.
 
 ### Adjudication Engine
 

@@ -8,7 +8,7 @@ AI-assisted full-stack application for adjudicating outpatient department insura
 - Node.js + Express backend
 - MongoDB via Mongoose
 - Deterministic adjudication engine
-- Optional LLM/OCR extension point for document extraction
+- Gemini/OpenAI LLM extraction with local parser fallback
 
 ## Local Setup
 
@@ -25,6 +25,15 @@ The app runs at:
 
 MongoDB is optional for local demo. If `MONGODB_URI` is not set, adjudication and test-case running still work, but claim history is not persisted.
 
+LLM extraction is optional. If `GEMINI_API_KEY` is set, `/api/extraction` uses Gemini to extract claim fields from pasted text, uploaded images, and uploaded PDFs. If Gemini is unavailable, it tries OpenAI for text extraction when `OPENAI_API_KEY` is set. If both are missing or fail, the app automatically falls back to the local parser.
+
+```env
+GEMINI_API_KEY=your_key_here
+GEMINI_EXTRACTION_MODEL=gemini-2.5-flash
+OPENAI_API_KEY=your_key_here
+OPENAI_EXTRACTION_MODEL=gpt-4.1-mini
+```
+
 ## Accuracy Check
 
 Run the supplied assignment test cases:
@@ -37,7 +46,7 @@ Or open the frontend and use the **Test Cases** tab.
 
 ## Key Design Choice
 
-The LLM should extract structured fields from medical documents, but the final approval/rejection is made by deterministic rules. This keeps claim outcomes explainable and repeatable.
+The LLM extracts structured fields from medical documents, but the final approval/rejection is made by deterministic rules. This keeps claim outcomes explainable and repeatable.
 
 ## Documentation
 

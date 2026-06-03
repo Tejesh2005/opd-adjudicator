@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import claimRoutes from "./routes/claimRoutes.js";
+import extractionRoutes from "./routes/extractionRoutes.js";
 import testCaseRoutes from "./routes/testCaseRoutes.js";
 
 dotenv.config();
@@ -23,6 +24,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/claims", claimRoutes);
+app.use("/api/extraction", extractionRoutes);
 app.use("/api/test-cases", testCaseRoutes);
 
 async function start() {

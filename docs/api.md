@@ -59,6 +59,51 @@ Response:
 
 Returns saved claims when MongoDB is connected. Returns an empty array when running without MongoDB.
 
+## Extract Documents
+
+`POST /extraction`
+
+Accepts `multipart/form-data`.
+
+Fields:
+
+- `documentText`: optional OCR/copied prescription and bill text
+- `documents`: optional uploaded image, PDF, text, or Markdown files
+
+Behavior:
+
+- Uses Gemini extraction for text, image, and PDF input when `GEMINI_API_KEY` is configured.
+- Uses OpenAI extraction when Gemini is unavailable and `OPENAI_API_KEY` is configured.
+- Falls back to the local parser when no LLM key is configured or when the LLM calls fail.
+
+Response:
+
+```json
+{
+  "extracted_claim": {
+    "member_id": "EMP001",
+    "member_name": "Rajesh Kumar",
+    "treatment_date": "2024-11-01",
+    "claim_amount": 1500,
+    "documents": {
+      "prescription": {
+        "doctor_name": "Dr. Sharma",
+        "doctor_reg": "KA/45678/2015",
+        "diagnosis": "Viral fever",
+        "medicines_prescribed": ["Paracetamol 650mg"]
+      },
+      "bill": {
+        "consultation_fee": 1000,
+        "diagnostic_tests": 500
+      }
+    }
+  },
+  "confidence_score": 0.9,
+  "extraction_method": "gemini_llm",
+  "notes": "Gemini extracted structured fields; deterministic policy rules still make the adjudication decision."
+}
+```
+
 ## Get Claim
 
 `GET /claims/:claimId`

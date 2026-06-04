@@ -1,7 +1,7 @@
 # Assumptions
 
 - The provided JSON test cases represent already-extracted medical document data.
-- OCR and LLM extraction are treated as an extension point for the MVP.
+- Gemini LLM extraction handles uploaded images/PDFs and pasted text. OpenAI text extraction and local parser fallback are available if Gemini is unavailable.
 - Doctor registration validation is format-based, not registry-verified.
 - Member coverage is assumed valid when a member ID is present, unless a rule-specific issue is detected.
 - Annual utilization and duplicate claim databases are not available in the assignment package.

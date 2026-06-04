@@ -54,3 +54,4 @@ The LLM extracts structured fields from medical documents, but the final approva
 - [API Documentation](docs/api.md)
 - [Decision Flow](docs/decision-flow.md)
 - [Assumptions](docs/assumptions.md)
+- [Original Assignment References](docs/reference)

@@ -70,13 +70,16 @@ export default function SubmitClaim() {
       const amount = Number(item.amount);
       if (key && Number.isFinite(amount)) bill[key] = amount;
     }
+    const itemizedTotal = Object.values(bill).reduce((sum, amount) => sum + amount, 0);
+    const enteredClaimAmount = Number(form.claim_amount);
+    const claimAmount = Number.isFinite(enteredClaimAmount) ? Math.max(enteredClaimAmount, itemizedTotal) : itemizedTotal;
 
     return {
       member_id: form.member_id,
       member_name: form.member_name,
       treatment_date: form.treatment_date,
       ...(form.member_join_date ? { member_join_date: form.member_join_date } : {}),
-      claim_amount: Number(form.claim_amount),
+      claim_amount: claimAmount,
       ...(form.hospital ? { hospital: form.hospital } : {}),
       ...(form.cashless_request ? { cashless_request: true } : {}),
       ...(form.pre_authorization_id ? { pre_authorization_id: form.pre_authorization_id } : {}),

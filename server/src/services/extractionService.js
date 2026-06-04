@@ -57,7 +57,9 @@ function toIsoDate(value) {
 
 function parseAmount(value) {
   if (!value) return 0;
-  return Number(value.replace(/[,₹Rs.\s]/gi, "")) || 0;
+  const normalized = value.replace(/rs\.?|₹|,/gi, "").trim();
+  const match = normalized.match(/\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : 0;
 }
 
 function parseBillItems(text) {
@@ -69,7 +71,8 @@ function parseBillItems(text) {
     ["root_canal", /root\s+canal\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i],
     ["teeth_whitening", /teeth\s+whitening\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i],
     ["mri_scan", /mri(?:\s+scan)?\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i],
-    ["diet_plan", /diet\s+plan\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i]
+    ["diet_plan", /diet\s+plan\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i],
+    ["gst", /(?:gst|cgst|sgst|tax)(?:\s*\(\d+(?:\.\d+)?%\))?\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,.]+)/i]
   ];
 
   const bill = {};
@@ -79,6 +82,20 @@ function parseBillItems(text) {
   }
 
   return bill;
+}
+
+function sanitizeBillItems(bill = {}) {
+  const ignoredKeys = new Set(["subtotal", "sub_total", "total", "grand_total", "claim_amount", "amount_paid", "change"]);
+
+  return Object.fromEntries(
+    Object.entries(bill)
+      .map(([key, value]) => [key, Number(value)])
+      .filter(([key, value]) => !ignoredKeys.has(key) && Number.isFinite(value) && value >= 0)
+  );
+}
+
+function sumBillItems(bill = {}) {
+  return Object.values(sanitizeBillItems(bill)).reduce((sum, amount) => sum + amount, 0);
 }
 
 function splitList(value) {
@@ -94,13 +111,13 @@ function parseClaimLocally({ text, files = [] }) {
     /total\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i,
     /claim\s+amount\s*[:\-]?\s*(?:rs\.?|₹)?\s*([\d,]+)/i
   ]));
-  const billTotal = Object.values(bill).reduce((sum, amount) => sum + amount, 0);
+  const billTotal = sumBillItems(bill);
 
   return {
     member_id: firstMatch(text, [/member\s+id\s*[:\-]\s*([A-Z0-9_-]+)/i], "EMP_EXTRACTED"),
     member_name: firstMatch(text, [/patient\s+name\s*[:\-]\s*([^\n]+)/i, /member\s+name\s*[:\-]\s*([^\n]+)/i], ""),
     treatment_date: toIsoDate(firstMatch(text, [/date\s*[:\-]\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})/i, /treatment\s+date\s*[:\-]\s*([0-9-]+)/i], "")),
-    claim_amount: totalFromBill || billTotal,
+    claim_amount: billTotal > totalFromBill ? billTotal : totalFromBill,
     hospital: firstMatch(text, [/(apollo hospitals|fortis healthcare|max healthcare|manipal hospitals|narayana health)/i], ""),
     cashless_request: /cashless\s*[:\-]?\s*yes|cashless request/i.test(text),
     pre_authorization_id: firstMatch(text, [/pre-?auth(?:orization)?\s*(?:id)?\s*[:\-]\s*([A-Z0-9_-]+)/i], ""),
@@ -139,18 +156,20 @@ function normalizeConfidence(value, fallback = 0.9) {
 
 function cleanLlmClaim(claim, fallbackClaim) {
   const bill = claim?.documents?.bill && typeof claim.documents.bill === "object"
-    ? claim.documents.bill
-    : fallbackClaim.documents.bill;
+    ? sanitizeBillItems(claim.documents.bill)
+    : sanitizeBillItems(fallbackClaim.documents.bill);
   const medicines = Array.isArray(claim?.documents?.prescription?.medicines_prescribed)
     ? claim.documents.prescription.medicines_prescribed
     : fallbackClaim.documents.prescription.medicines_prescribed;
+  const itemizedTotal = sumBillItems(bill);
+  const extractedClaimAmount = Number(claim?.claim_amount || fallbackClaim.claim_amount || 0);
 
   return {
     member_id: claim?.member_id || fallbackClaim.member_id,
     member_name: claim?.member_name || fallbackClaim.member_name,
     treatment_date: claim?.treatment_date || fallbackClaim.treatment_date,
     ...(claim?.member_join_date ? { member_join_date: claim.member_join_date } : {}),
-    claim_amount: Number(claim?.claim_amount || fallbackClaim.claim_amount || 0),
+    claim_amount: itemizedTotal > extractedClaimAmount ? itemizedTotal : extractedClaimAmount,
     hospital: claim?.hospital || fallbackClaim.hospital,
     cashless_request: Boolean(claim?.cashless_request || fallbackClaim.cashless_request),
     pre_authorization_id: claim?.pre_authorization_id || fallbackClaim.pre_authorization_id,
@@ -198,9 +217,10 @@ function buildExtractionPrompt(text) {
       "bill": {
         "consultation_fee": number,
         "diagnostic_tests": number,
-        "medicines": number
+        "medicines": number,
+        "gst": number
       }
-    },
+    }
   },
   "confidence_score": number
 }
@@ -211,6 +231,9 @@ Rules:
 - Use empty strings for unavailable text fields.
 - Use 0 for unavailable amount fields.
 - Keep bill item keys snake_case and clinically meaningful.
+- Include bill GST/tax as "gst" when it appears on the bill.
+- Do not include subtotal, total, amount paid, or change as bill item keys.
+- Set claim_amount to the full payable claim amount across all submitted documents, including GST/tax when applicable.
 - Convert dates to YYYY-MM-DD.
 - Set confidence_score from 0 to 1 based on document clarity and extraction completeness.
 - Return only valid JSON, no markdown.

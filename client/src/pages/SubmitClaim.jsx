@@ -298,7 +298,7 @@ export default function SubmitClaim() {
                       </label>
                       <label>
                         Amount
-                        <input type="number" min="0" value={item.amount} onChange={(event) => updateBillItem(item.id, "amount", event.target.value)} />
+                        <input type="number" min="0" step="0.01" value={item.amount} onChange={(event) => updateBillItem(item.id, "amount", event.target.value)} />
                       </label>
                       <button className="icon-button danger-button" onClick={() => removeBillItem(item.id)} type="button" title="Remove item">
                         <Trash2 size={16} />
@@ -310,7 +310,7 @@ export default function SubmitClaim() {
                 <div className="form-grid">
                   <label>
                     Total claim amount
-                    <input type="number" min="0" value={form.claim_amount} onChange={(event) => updateForm("claim_amount", event.target.value)} />
+                    <input type="number" min="0" step="0.01" value={form.claim_amount} onChange={(event) => updateForm("claim_amount", event.target.value)} />
                   </label>
                   <label>
                     Hospital

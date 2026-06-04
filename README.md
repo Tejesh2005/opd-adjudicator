@@ -2,6 +2,12 @@
 
 AI-assisted full-stack application for adjudicating outpatient department insurance claims against Plum-style policy terms.
 
+## Live Deployment
+
+- Frontend: https://opd-adjudicator.vercel.app/
+- Backend API: https://opd-adjudicator-api.onrender.com
+- Backend health check: https://opd-adjudicator-api.onrender.com/health
+
 ## Stack
 
 - React + Vite frontend
@@ -32,6 +38,23 @@ GEMINI_API_KEY=your_key_here
 GEMINI_EXTRACTION_MODEL=gemini-2.5-flash
 OPENAI_API_KEY=your_key_here
 OPENAI_EXTRACTION_MODEL=gpt-4.1-mini
+```
+
+For deployment, configure the frontend with:
+
+```env
+VITE_API_BASE_URL=https://opd-adjudicator-api.onrender.com/api
+```
+
+Configure the backend with:
+
+```env
+MONGODB_URI=your_mongodb_uri
+GEMINI_API_KEY=your_gemini_key
+GEMINI_EXTRACTION_MODEL=gemini-2.5-flash
+OPENAI_API_KEY=your_openai_key_optional
+OPENAI_EXTRACTION_MODEL=gpt-4.1-mini
+CLIENT_ORIGIN=https://opd-adjudicator.vercel.app
 ```
 
 ## Accuracy Check

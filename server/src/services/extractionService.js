@@ -129,6 +129,14 @@ function estimateLocalConfidence(extractedClaim, text) {
   return text.trim() ? Math.max(0.72, Math.min(0.94, 0.95 - missingFields * 0.01)) : 0.45;
 }
 
+function normalizeConfidence(value, fallback = 0.9) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallback;
+
+  const normalized = numericValue > 1 ? numericValue / 100 : numericValue;
+  return Number(Math.max(0, Math.min(1, normalized)).toFixed(2));
+}
+
 function cleanLlmClaim(claim, fallbackClaim) {
   const bill = claim?.documents?.bill && typeof claim.documents.bill === "object"
     ? claim.documents.bill
@@ -159,30 +167,42 @@ function cleanLlmClaim(claim, fallbackClaim) {
   };
 }
 
+function cleanLlmExtraction(parsedOutput, fallbackClaim) {
+  const claim = parsedOutput?.extracted_claim || parsedOutput?.claim || parsedOutput;
+
+  return {
+    extracted_claim: cleanLlmClaim(claim, fallbackClaim),
+    confidence_score: normalizeConfidence(parsedOutput?.confidence_score ?? parsedOutput?.confidence, 0.9)
+  };
+}
+
 function buildExtractionPrompt(text) {
   return `Extract a JSON object with this exact shape:
 {
-  "member_id": "string",
-  "member_name": "string",
-  "treatment_date": "YYYY-MM-DD",
-  "member_join_date": "YYYY-MM-DD or empty",
-  "claim_amount": number,
-  "hospital": "string",
-  "cashless_request": boolean,
-  "pre_authorization_id": "string",
-  "documents": {
-    "prescription": {
-      "doctor_name": "string",
-      "doctor_reg": "string",
-      "diagnosis": "string",
-      "medicines_prescribed": ["string"]
+  "extracted_claim": {
+    "member_id": "string",
+    "member_name": "string",
+    "treatment_date": "YYYY-MM-DD",
+    "member_join_date": "YYYY-MM-DD or empty",
+    "claim_amount": number,
+    "hospital": "string",
+    "cashless_request": boolean,
+    "pre_authorization_id": "string",
+    "documents": {
+      "prescription": {
+        "doctor_name": "string",
+        "doctor_reg": "string",
+        "diagnosis": "string",
+        "medicines_prescribed": ["string"]
+      },
+      "bill": {
+        "consultation_fee": number,
+        "diagnostic_tests": number,
+        "medicines": number
+      }
     },
-    "bill": {
-      "consultation_fee": number,
-      "diagnostic_tests": number,
-      "medicines": number
-    }
-  }
+  },
+  "confidence_score": number
 }
 
 Rules:
@@ -192,6 +212,7 @@ Rules:
 - Use 0 for unavailable amount fields.
 - Keep bill item keys snake_case and clinically meaningful.
 - Convert dates to YYYY-MM-DD.
+- Set confidence_score from 0 to 1 based on document clarity and extraction completeness.
 - Return only valid JSON, no markdown.
 
 Document text:
@@ -246,10 +267,10 @@ async function extractWithGemini({ text, files, fallbackClaim }) {
   const data = await response.json();
   const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!output) throw new Error("Gemini returned no extractable text.");
+  const extraction = cleanLlmExtraction(parseJsonText(output), fallbackClaim);
 
   return {
-    extracted_claim: cleanLlmClaim(parseJsonText(output), fallbackClaim),
-    confidence_score: 0.9,
+    ...extraction,
     extraction_method: "gemini_llm",
     notes: files.some((file) => isGeminiReadableFile(file))
       ? "Gemini extracted structured fields from uploaded image/PDF content; deterministic policy rules still make the adjudication decision."
@@ -277,10 +298,10 @@ async function extractWithOpenAI({ text, fallbackClaim }) {
       }
     }
   });
+  const extraction = cleanLlmExtraction(parseJsonText(response.output_text), fallbackClaim);
 
   return {
-    extracted_claim: cleanLlmClaim(parseJsonText(response.output_text), fallbackClaim),
-    confidence_score: 0.9,
+    ...extraction,
     extraction_method: "openai_llm",
     notes: "OpenAI extracted structured fields; deterministic policy rules still make the adjudication decision."
   };

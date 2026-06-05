@@ -19,6 +19,7 @@ This matrix maps `policy_terms.json` and `adjudication_rules.md` to the implemen
 | Alternative medicine | Approves Ayurveda/Homeopathy/Unani-style claims within policy limits. |
 | Network cashless | Approves cashless claims at configured network hospitals under Rs 5000 and applies 20% network discount. |
 | Consultation co-pay | Applies 10% co-pay to standard OPD reimbursement claims. |
+| GST / tax on bills | Extracts GST/tax as a bill item when present and includes it in the itemized claim amount. |
 | Fraud/manual review | Routes multiple same-day claims or high-value claims to `MANUAL_REVIEW`. |
 | Decision output | Returns decision, approved amount, rejection reasons, confidence, notes, next steps, and rule trace. |
 | Official tests | All 10 provided test cases pass. |

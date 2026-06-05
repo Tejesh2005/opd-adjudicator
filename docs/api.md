@@ -1,6 +1,8 @@
 # API Documentation
 
-Base URL: `http://localhost:4000/api`
+Local base URL: `http://localhost:4000/api`
+
+Production base URL: `https://opd-adjudicator-api.onrender.com/api`
 
 ## Health
 
@@ -28,7 +30,8 @@ Request body:
     },
     "bill": {
       "consultation_fee": 1000,
-      "diagnostic_tests": 500
+      "diagnostic_tests": 500,
+      "gst": 0
     }
   }
 }
@@ -75,6 +78,8 @@ Behavior:
 - Uses Gemini extraction for text, image, and PDF input when `GEMINI_API_KEY` is configured.
 - Uses OpenAI extraction when Gemini is unavailable and `OPENAI_API_KEY` is configured.
 - Falls back to the local parser when no LLM key is configured or when the LLM calls fail.
+- Extracts GST/tax as a bill item when present and includes it in the claim amount.
+- Gemini/OpenAI return an extraction confidence score; the local parser estimates confidence from extraction completeness.
 
 Response:
 
@@ -94,11 +99,12 @@ Response:
       },
       "bill": {
         "consultation_fee": 1000,
-        "diagnostic_tests": 500
+        "diagnostic_tests": 500,
+        "gst": 0
       }
     }
   },
-  "confidence_score": 0.9,
+  "confidence_score": 0.92,
   "extraction_method": "gemini_llm",
   "notes": "Gemini extracted structured fields; deterministic policy rules still make the adjudication decision."
 }

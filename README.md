@@ -18,9 +18,39 @@ AI-assisted full-stack application for adjudicating outpatient department insura
 
 ## Local Setup
 
+Prerequisites:
+
+- Node.js 18 or newer
+- npm
+- Optional: MongoDB Atlas connection string for persisted claim history
+- Optional: Gemini API key for uploaded image/PDF extraction
+
+Install dependencies from the project root:
+
 ```bash
 npm run install:all
+```
+
+Create the backend environment file:
+
+```bash
 cp server/.env.example server/.env
+```
+
+Fill `server/.env`:
+
+```env
+MONGODB_URI=your_mongodb_uri
+GEMINI_API_KEY=your_gemini_key
+GEMINI_EXTRACTION_MODEL=gemini-2.5-flash
+OPENAI_API_KEY=your_openai_key_optional
+OPENAI_EXTRACTION_MODEL=gpt-4.1-mini
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+Start the frontend and backend together:
+
+```bash
 npm run dev
 ```
 
@@ -32,13 +62,6 @@ The app runs at:
 MongoDB is optional for local demo. If `MONGODB_URI` is not set, adjudication and test-case running still work, but claim history is not persisted.
 
 LLM extraction is optional. If `GEMINI_API_KEY` is set, `/api/extraction` uses Gemini to extract claim fields from pasted text, uploaded images, and uploaded PDFs. If Gemini is unavailable, it tries OpenAI for text extraction when `OPENAI_API_KEY` is set. If both are missing or fail, the app automatically falls back to the local parser.
-
-```env
-GEMINI_API_KEY=your_key_here
-GEMINI_EXTRACTION_MODEL=gemini-2.5-flash
-OPENAI_API_KEY=your_key_here
-OPENAI_EXTRACTION_MODEL=gpt-4.1-mini
-```
 
 For deployment, configure the frontend with:
 
@@ -66,6 +89,12 @@ npm run test --prefix server
 ```
 
 Or open the frontend and use the **Test Cases** tab.
+
+Build the frontend production bundle:
+
+```bash
+npm run build --prefix client
+```
 
 ## Key Design Choice
 
